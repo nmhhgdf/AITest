@@ -30,6 +30,9 @@ public class ChatController {
     @Autowired
     private AiConfig.AssistantUnique assistantUnique;
 
+    @Autowired
+    private AiConfig.AssistantUnique assistantUniquePersistent;
+
     @RequestMapping("/chat")
     public String test(@RequestParam(defaultValue = "你是谁") String message) {
         return qwenChatModel.chat(message);
@@ -87,6 +90,25 @@ public class ChatController {
     public Flux<String> memoryIdStreamChat(@RequestParam(defaultValue = "你是谁") String message,
                                            @RequestParam Integer memoryId) {
         TokenStream stream = assistantUnique.stream(memoryId, message);
+
+        return Flux.create(fluxSink -> {
+            stream.onPartialResponse(fluxSink::next)
+                    .onCompleteResponse(s -> fluxSink.complete())
+                    .onError(fluxSink::error)
+                    .start();
+        });
+    }
+
+    @RequestMapping(value = "/persistent_mermoryId_chat")
+    public String persistentMemoryIdChat(@RequestParam String message,
+                               @RequestParam Integer memoryId) {
+        return assistantUniquePersistent.chat(memoryId, message);
+    }
+
+    @RequestMapping(value = "/persistent_mermoryId_stream_chat")
+    public Flux<String> persistentMemoryIdStreamChat(@RequestParam String message,
+                                           @RequestParam Integer memoryId) {
+        TokenStream stream = assistantUniquePersistent.stream(memoryId, message);
 
         return Flux.create(fluxSink -> {
             stream.onPartialResponse(fluxSink::next)

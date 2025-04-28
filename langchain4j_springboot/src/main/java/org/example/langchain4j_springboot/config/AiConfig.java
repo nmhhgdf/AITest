@@ -5,10 +5,7 @@ import dev.langchain4j.memory.chat.ChatMemoryProvider;
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.chat.StreamingChatLanguageModel;
-import dev.langchain4j.service.AiServices;
-import dev.langchain4j.service.MemoryId;
-import dev.langchain4j.service.TokenStream;
-import dev.langchain4j.service.UserMessage;
+import dev.langchain4j.service.*;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -48,6 +45,25 @@ public class AiConfig {
                         .id(memoryId)
                         .build())
                 .build();
+    }
+
+    @Bean
+    public AssistantUnique assistantUniquePersistent(ChatLanguageModel chatLanguageModel,
+                                                     StreamingChatLanguageModel streamingChatModel,
+                                                     PersistentChatMemoryStore persistentChatMemoryStore) {
+
+        ChatMemoryProvider chatMemoryProvider = memoryId -> MessageWindowChatMemory.builder()
+                .id(memoryId)
+                .maxMessages(100)
+                .chatMemoryStore(persistentChatMemoryStore)
+                .build();
+
+        return AiServices.builder(AssistantUnique.class)
+                .chatLanguageModel(chatLanguageModel)
+                .streamingChatLanguageModel(streamingChatModel)
+                .chatMemoryProvider(chatMemoryProvider)
+                .build();
+
     }
 
 }
