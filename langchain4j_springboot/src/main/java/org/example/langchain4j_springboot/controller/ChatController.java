@@ -13,6 +13,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Flux;
 
+import java.time.LocalDate;
+
 @Slf4j
 @RestController
 @RequestMapping("/ai")
@@ -70,7 +72,8 @@ public class ChatController {
 
     @RequestMapping(value = "/mermory_stream_chat")
     public Flux<String> memoryStreamChat(@RequestParam(defaultValue = "你是谁") String message) {
-        TokenStream stream = assistant.stream(message);
+//        TokenStream stream = assistant.stream(message);
+        TokenStream stream = assistant.stream(message, LocalDate.now().toString());
 
         return Flux.create(fluxSink -> {
             stream.onPartialResponse(s -> fluxSink.next(s))
