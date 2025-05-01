@@ -1,11 +1,16 @@
 package org.example.langchain4j_springboot.config;
 
+import dev.langchain4j.community.model.dashscope.QwenEmbeddingModel;
 import dev.langchain4j.memory.ChatMemory;
 import dev.langchain4j.memory.chat.ChatMemoryProvider;
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.chat.StreamingChatLanguageModel;
+import dev.langchain4j.rag.content.retriever.ContentRetriever;
+import dev.langchain4j.rag.content.retriever.EmbeddingStoreContentRetriever;
 import dev.langchain4j.service.*;
+import dev.langchain4j.store.embedding.EmbeddingStore;
+import dev.langchain4j.store.embedding.inmemory.InMemoryEmbeddingStore;
 import org.example.langchain4j_springboot.service.ToolService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -15,6 +20,7 @@ public class AiConfig {
 
     public interface Assistant {
         String chat(String message);
+
         TokenStream stream(String message);
 
         @SystemMessage("""
@@ -28,20 +34,36 @@ public class AiConfig {
 
     public interface AssistantUnique {
         String chat(@MemoryId int memoryId, @UserMessage String userMessage);
+
         TokenStream stream(@MemoryId int memoryId, @UserMessage String userMessage);
+    }
+
+    @Bean
+    public EmbeddingStore embeddingStore() {
+        return new InMemoryEmbeddingStore();
     }
 
     @Bean
     public Assistant assistant(ChatLanguageModel chatLanguageModel,
                                StreamingChatLanguageModel streamingChatModel,
-                               ToolService toolService) {
+                               ToolService toolService,
+                               EmbeddingStore embeddingStore,
+                               QwenEmbeddingModel qwenEmbeddingModel) {
         ChatMemory chatMemory = MessageWindowChatMemory.withMaxMessages(10);
+
+        ContentRetriever contentRetriever = EmbeddingStoreContentRetriever.builder()
+                .embeddingStore(embeddingStore)
+                .embeddingModel(qwenEmbeddingModel)
+                .maxResults(5)
+                .minScore(0.6)
+                .build();
 
         return AiServices.builder(Assistant.class)
                 .tools(toolService)
                 .chatLanguageModel(chatLanguageModel)
                 .streamingChatLanguageModel(streamingChatModel)
                 .chatMemory(chatMemory)
+                .contentRetriever(contentRetriever)
                 .build();
     }
 
