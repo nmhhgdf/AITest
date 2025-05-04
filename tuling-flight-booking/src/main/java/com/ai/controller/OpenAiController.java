@@ -1,24 +1,38 @@
 package com.ai.controller;
 
+import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.client.advisor.AbstractChatMemoryAdvisor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import reactor.core.publisher.Flux;
+
+import java.time.LocalDate;
 
 
 @RestController
 @CrossOrigin
-public class OpenAiController  {
+public class OpenAiController {
 
+    @Autowired
+    private ChatClient chatClient;
 
     @CrossOrigin
     @GetMapping(value = "/ai/generateStreamAsString", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public String generateStreamAsString(@RequestParam(value = "message", defaultValue = "讲个笑话") String message) {
-        return null;
-        // todo 从这开始
-    }
+    public Flux<String> generateStreamAsString(@RequestParam(value = "message", defaultValue = "讲个笑话") String message) {
+        Flux<String> content = chatClient.prompt()
+                .user(message)
+                .system(promptSystemSpec -> promptSystemSpec.param("current_date", LocalDate.now().toString()))
+                .advisors(advisorSpec -> advisorSpec.param(AbstractChatMemoryAdvisor.CHAT_MEMORY_RETRIEVE_SIZE_KEY, 100))
+                .stream()
+                .content();
 
+        return content.doOnNext(System.out::println)
+                .concatWith(Flux.just("[complete]"));
+    }
 
 
 }
