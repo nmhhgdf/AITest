@@ -17,8 +17,11 @@ import java.time.LocalDate;
 @CrossOrigin
 public class OpenAiController {
 
-    @Autowired
-    private ChatClient chatClient;
+    private final ChatClient chatClient;
+
+    public OpenAiController(ChatClient chatClient) {
+        this.chatClient = chatClient;
+    }
 
     @CrossOrigin
     @GetMapping(value = "/ai/generateStreamAsString", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
